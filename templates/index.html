@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BigQuery Release Pulse - Latest Feed Updates</title>
+    <meta name="description" content="A premium tracker for the latest Google Cloud BigQuery release notes. View, search, filter, and share updates on Twitter / X.">
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <!-- Background Accents -->
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+
+    <div class="app-container">
+        <!-- Navigation Header -->
+        <header class="app-header">
+            <div class="brand">
+                <div class="logo-container">
+                    <!-- Custom SVG BigQuery-like pulse logo -->
+                    <svg class="logo" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="10" stroke="url(#logoGradient)" stroke-width="2"/>
+                        <path d="M12 6V12L16 14" stroke="url(#logoGradient)" stroke-width="2" stroke-linecap="round"/>
+                        <circle cx="12" cy="12" r="3" fill="#00D2FF" class="pulse-dot"/>
+                        <defs>
+                            <linearGradient id="logoGradient" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+                                <stop stop-color="#00D2FF"/>
+                                <stop offset="1" stop-color="#0066FF"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <h1 id="main-title">BigQuery Release Pulse</h1>
+                    <span class="badge badge-connected">
+                        <span class="dot-blink"></span> Live Feed
+                    </span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button id="btn-refresh" class="btn btn-primary" title="Refresh Release Notes">
+                    <svg class="icon icon-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                    </svg>
+                    <span>Refresh</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Metrics Dashboard -->
+        <section class="metrics-panel" aria-label="Release Statistics">
+            <div class="metric-card" data-filter="all" id="stat-total">
+                <span class="metric-value">-</span>
+                <span class="metric-label">Total Updates</span>
+            </div>
+            <div class="metric-card" data-filter="Feature" id="stat-features">
+                <span class="metric-value">-</span>
+                <span class="metric-label">Features</span>
+            </div>
+            <div class="metric-card" data-filter="Announcement" id="stat-announcements">
+                <span class="metric-value">-</span>
+                <span class="metric-label">Announcements</span>
+            </div>
+            <div class="metric-card" data-filter="Issue" id="stat-issues">
+                <span class="metric-value">-</span>
+                <span class="metric-label">Issues</span>
+            </div>
+            <div class="metric-card" data-filter="Breaking" id="stat-breaking">
+                <span class="metric-value">-</span>
+                <span class="metric-label">Breaking</span>
+            </div>
+        </section>
+
+        <!-- Filters & Search Toolbar -->
+        <section class="toolbar" aria-label="Search and Filters">
+            <div class="search-wrapper">
+                <svg class="icon icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="text" id="search-input" placeholder="Search release notes by keywords, features, functions..." autocomplete="off">
+                <button id="btn-clear-search" class="btn-clear" aria-label="Clear search" style="display: none;">
+                    &times;
+                </button>
+            </div>
+            <div class="filter-group">
+                <button class="btn-filter active" data-type="all">All</button>
+                <button class="btn-filter" data-type="Feature">Features</button>
+                <button class="btn-filter" data-type="Announcement">Announcements</button>
+                <button class="btn-filter" data-type="Issue">Issues</button>
+                <button class="btn-filter" data-type="Breaking">Breaking</button>
+                <button class="btn-filter" data-type="Change">Changes</button>
+            </div>
+        </section>
+
+        <!-- Main Content Area -->
+        <main class="content-area">
+            <!-- Loading Indicator -->
+            <div id="loading-state" class="loading-state">
+                <div class="spinner"></div>
+                <p>Syncing release feed from Google Cloud...</p>
+            </div>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="empty-state" style="display: none;">
+                <svg class="icon icon-empty" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M8 12h8M12 8v8"/>
+                </svg>
+                <h3>No updates found</h3>
+                <p>Try refining your search keyword or selecting a different filter.</p>
+            </div>
+
+            <!-- Timeline Feed -->
+            <div id="releases-timeline" class="timeline">
+                <!-- Grouped release cards injected here dynamically via JS -->
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>BigQuery Release Pulse &bull; Created with Flask &bull; Last checked: <span id="last-updated-time">Never</span></p>
+        </footer>
+    </div>
+
+    <!-- Tweet Composer Modal -->
+    <div id="tweet-modal" class="modal-overlay" aria-hidden="true">
+        <div class="modal" role="dialog" aria-labelledby="modal-title">
+            <div class="modal-header">
+                <h2 id="modal-title">Share Update on X / Twitter</h2>
+                <button id="btn-close-modal" class="btn-close" aria-label="Close dialog">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="tweet-card-preview">
+                    <div class="tweet-card-header">
+                        <div class="tweet-avatar">BQ</div>
+                        <div class="tweet-user-info">
+                            <span class="tweet-display-name">BigQuery Release Pulse</span>
+                            <span class="tweet-username">@BigQueryPulse</span>
+                        </div>
+                    </div>
+                    <div class="tweet-card-body">
+                        <textarea id="tweet-textarea" rows="5" maxlength="400" placeholder="What's happening?"></textarea>
+                    </div>
+                </div>
+                <div class="modal-controls">
+                    <div class="character-counter">
+                        <span id="char-count">0</span> / 280
+                    </div>
+                    <button id="btn-optimize-tweet" class="btn btn-secondary" title="Auto-format and shorten text to fit characters limit">
+                        Auto-Shorten
+                    </button>
+                </div>
+                <div class="tweet-rules-notice">
+                    <p>Tip: Twitter/X has a 280 character limit. The link is automatically included.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-cancel-tweet" class="btn btn-outline">Cancel</button>
+                <button id="btn-post-tweet" class="btn btn-tweet">
+                    <!-- Twitter/X inline SVG logo -->
+                    <svg class="icon-x" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                    Post to X
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <span id="toast-message">Copied to clipboard!</span>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
