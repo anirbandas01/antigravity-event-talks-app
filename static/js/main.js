@@ -14,6 +14,8 @@ const releasesTimeline = document.getElementById('releases-timeline');
 const loadingState = document.getElementById('loading-state');
 const emptyState = document.getElementById('empty-state');
 const lastUpdatedTime = document.getElementById('last-updated-time');
+const btnExport = document.getElementById('btn-export');
+const checkboxTheme = document.getElementById('checkbox-theme');
 
 // Modal Elements
 const tweetModal = document.getElementById('tweet-modal');
@@ -30,6 +32,12 @@ const toastMessage = document.getElementById('toast-message');
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
+    // Load theme preference before fetching
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light') {
+        document.body.classList.add('light-theme');
+        if (checkboxTheme) checkboxTheme.checked = true;
+    }
     fetchReleases();
     setupEventListeners();
 });
@@ -38,6 +46,26 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupEventListeners() {
     // Refresh button
     btnRefresh.addEventListener('click', () => fetchReleases(true));
+
+    // Theme Toggle switch
+    if (checkboxTheme) {
+        checkboxTheme.addEventListener('change', () => {
+            if (checkboxTheme.checked) {
+                document.body.classList.add('light-theme');
+                localStorage.setItem('theme', 'light');
+                showToast('Theme switched to Light mode');
+            } else {
+                document.body.classList.remove('light-theme');
+                localStorage.setItem('theme', 'dark');
+                showToast('Theme switched to Dark mode');
+            }
+        });
+    }
+
+    // Export to CSV button
+    if (btnExport) {
+        btnExport.addEventListener('click', exportToCSV);
+    }
 
     searchInput.addEventListener('input', (e) => {
         searchQuery = e.target.value.toLowerCase().trim();
@@ -444,4 +472,69 @@ function showToast(message) {
     setTimeout(() => {
         toast.classList.remove('active');
     }, 3500);
+}
+
+// Get the currently filtered release notes
+function getFilteredReleases() {
+    return releases.filter(item => {
+        const matchesFilter = activeFilter === 'all' || item.type.toLowerCase() === activeFilter.toLowerCase();
+        
+        const itemText = item.text ? item.text.toLowerCase() : '';
+        const itemType = item.type ? item.type.toLowerCase() : '';
+        const itemDate = item.date ? item.date.toLowerCase() : '';
+        const query = searchQuery.toLowerCase();
+        
+        const matchesSearch = !query || 
+            itemText.includes(query) || 
+            itemType.includes(query) || 
+            itemDate.includes(query);
+            
+        return matchesFilter && matchesSearch;
+    });
+}
+
+// Export the filtered release notes to a CSV file
+function exportToCSV() {
+    const filtered = getFilteredReleases();
+    if (filtered.length === 0) {
+        showToast('No releases found to export!');
+        return;
+    }
+
+    // Header row
+    let csv = "Date,Type,Description,Link\n";
+    
+    // Data rows
+    filtered.forEach(item => {
+        // Escape quotes by doubling them up
+        const date = `"${item.date.replace(/"/g, '""')}"`;
+        const type = `"${item.type.replace(/"/g, '""')}"`;
+        const text = `"${item.text.replace(/"/g, '""')}"`;
+        const link = `"${item.link.replace(/"/g, '""')}"`;
+        
+        csv += `${date},${type},${text},${link}\n`;
+    });
+    
+    // Create Blob and trigger download
+    try {
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        
+        const filterStr = activeFilter === 'all' ? 'all' : activeFilter.toLowerCase();
+        const dateStr = new Date().toISOString().split('T')[0];
+        
+        link.setAttribute("href", url);
+        link.setAttribute("download", `bigquery_releases_${filterStr}_${dateStr}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        
+        // Clean up
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        showToast(`Exported ${filtered.length} release notes to CSV!`);
+    } catch (e) {
+        console.error('CSV Export failed:', e);
+        showToast('CSV export failed. Please try again.');
+    }
 }
